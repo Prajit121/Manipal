@@ -1,0 +1,512 @@
+{
+  "_meta": {
+    "generated_by": "remediate_data.py",
+    "seed": 42,
+    "as_of_date": "2026-12-31",
+    "note": "FROZEN demo values. Do not regenerate at runtime - the deck screenshots must match the live demo. Swap for real fields by replacing this file and keeping the same schema."
+  },
+  "is_formulary": {
+    "I001": true,
+    "I002": true,
+    "I003": false,
+    "I004": false,
+    "I005": true,
+    "I006": true,
+    "I007": true,
+    "I008": true,
+    "I009": true,
+    "I010": true,
+    "I011": false,
+    "I012": false,
+    "I013": true,
+    "I014": false,
+    "I015": true,
+    "I016": true,
+    "I017": false,
+    "I018": true,
+    "I019": true,
+    "I020": true,
+    "I021": true,
+    "I022": true,
+    "I023": false,
+    "I024": true,
+    "I025": true,
+    "I026": true,
+    "I027": false,
+    "I028": false,
+    "I029": true,
+    "I030": true,
+    "I031": false,
+    "I032": true,
+    "I033": true,
+    "I034": true,
+    "I035": false,
+    "I036": false,
+    "I037": true,
+    "I038": true,
+    "I039": false,
+    "I040": true,
+    "I041": false,
+    "I042": false,
+    "I043": true,
+    "I044": true,
+    "I045": true,
+    "I046": true,
+    "I047": false,
+    "I048": true,
+    "I049": false,
+    "I050": true,
+    "I051": true,
+    "I052": false,
+    "I053": true,
+    "I054": true,
+    "I055": true,
+    "I056": true,
+    "I057": true,
+    "I058": false,
+    "I059": true,
+    "I060": false,
+    "I061": true,
+    "I062": true,
+    "I063": true,
+    "I064": false,
+    "I065": false,
+    "I066": false,
+    "I067": true,
+    "I068": true,
+    "I069": false,
+    "I070": true,
+    "I071": true,
+    "I072": true,
+    "I073": true,
+    "I074": false,
+    "I075": true,
+    "I076": false,
+    "I077": true,
+    "I078": true,
+    "I079": false,
+    "I080": true,
+    "I081": false,
+    "I082": true,
+    "I083": true,
+    "I084": true,
+    "I085": true,
+    "I086": false,
+    "I087": true,
+    "I088": true,
+    "I089": false,
+    "I090": false,
+    "I091": false,
+    "I092": true,
+    "I093": true,
+    "I094": true,
+    "I095": true,
+    "I096": true,
+    "I097": true,
+    "I098": true,
+    "I099": false,
+    "I100": true
+  },
+  "sob_targets": {
+    "I100": {
+      "vendor_id": "V006",
+      "target_sob_pct": 93.7
+    },
+    "I078": {
+      "vendor_id": "V009",
+      "target_sob_pct": 95.0
+    },
+    "I070": {
+      "vendor_id": "V005",
+      "target_sob_pct": 95.0
+    },
+    "I021": {
+      "vendor_id": "V003",
+      "target_sob_pct": 95.0
+    },
+    "I025": {
+      "vendor_id": "V002",
+      "target_sob_pct": 95.0
+    },
+    "I072": {
+      "vendor_id": "V004",
+      "target_sob_pct": 95.0
+    },
+    "I068": {
+      "vendor_id": "V002",
+      "target_sob_pct": 91.5
+    },
+    "I089": {
+      "vendor_id": "V005",
+      "target_sob_pct": 95.0
+    },
+    "I090": {
+      "vendor_id": "V004",
+      "target_sob_pct": 95.0
+    },
+    "I092": {
+      "vendor_id": "V006",
+      "target_sob_pct": 95.0
+    },
+    "I088": {
+      "vendor_id": "V010",
+      "target_sob_pct": 91.4
+    },
+    "I034": {
+      "vendor_id": "V007",
+      "target_sob_pct": 95.0
+    },
+    "I048": {
+      "vendor_id": "V001",
+      "target_sob_pct": 95.0
+    },
+    "I096": {
+      "vendor_id": "V008",
+      "target_sob_pct": 94.7
+    },
+    "I093": {
+      "vendor_id": "V004",
+      "target_sob_pct": 90.6
+    },
+    "I012": {
+      "vendor_id": "V002",
+      "target_sob_pct": 95.0
+    },
+    "I035": {
+      "vendor_id": "V001",
+      "target_sob_pct": 89.9
+    },
+    "I013": {
+      "vendor_id": "V005",
+      "target_sob_pct": 95.0
+    },
+    "I098": {
+      "vendor_id": "V001",
+      "target_sob_pct": 80.9
+    },
+    "I085": {
+      "vendor_id": "V007",
+      "target_sob_pct": 79.0
+    },
+    "I014": {
+      "vendor_id": "V004",
+      "target_sob_pct": 95.0
+    },
+    "I060": {
+      "vendor_id": "V005",
+      "target_sob_pct": 79.2
+    },
+    "I015": {
+      "vendor_id": "V005",
+      "target_sob_pct": 84.1
+    },
+    "I002": {
+      "vendor_id": "V008",
+      "target_sob_pct": 82.0
+    },
+    "I054": {
+      "vendor_id": "V003",
+      "target_sob_pct": 74.5
+    },
+    "I074": {
+      "vendor_id": "V005",
+      "target_sob_pct": 79.0
+    },
+    "I079": {
+      "vendor_id": "V010",
+      "target_sob_pct": 79.1
+    },
+    "I050": {
+      "vendor_id": "V004",
+      "target_sob_pct": 95.0
+    },
+    "I024": {
+      "vendor_id": "V003",
+      "target_sob_pct": 95.0
+    },
+    "I038": {
+      "vendor_id": "V004",
+      "target_sob_pct": 95.0
+    },
+    "I045": {
+      "vendor_id": "V005",
+      "target_sob_pct": 78.1
+    },
+    "I067": {
+      "vendor_id": "V005",
+      "target_sob_pct": 69.6
+    },
+    "I037": {
+      "vendor_id": "V001",
+      "target_sob_pct": 95.0
+    },
+    "I020": {
+      "vendor_id": "V001",
+      "target_sob_pct": 71.4
+    },
+    "I046": {
+      "vendor_id": "V005",
+      "target_sob_pct": 95.0
+    },
+    "I004": {
+      "vendor_id": "V009",
+      "target_sob_pct": 95.0
+    },
+    "I086": {
+      "vendor_id": "V006",
+      "target_sob_pct": 74.2
+    },
+    "I080": {
+      "vendor_id": "V002",
+      "target_sob_pct": 68.3
+    },
+    "I055": {
+      "vendor_id": "V001",
+      "target_sob_pct": 95.0
+    },
+    "I083": {
+      "vendor_id": "V008",
+      "target_sob_pct": 70.1
+    },
+    "I011": {
+      "vendor_id": "V004",
+      "target_sob_pct": 68.0
+    },
+    "I008": {
+      "vendor_id": "V004",
+      "target_sob_pct": 95.0
+    },
+    "I053": {
+      "vendor_id": "V010",
+      "target_sob_pct": 89.8
+    },
+    "I006": {
+      "vendor_id": "V001",
+      "target_sob_pct": 95.0
+    },
+    "I065": {
+      "vendor_id": "V004",
+      "target_sob_pct": 83.2
+    },
+    "I001": {
+      "vendor_id": "V005",
+      "target_sob_pct": 68.4
+    },
+    "I043": {
+      "vendor_id": "V008",
+      "target_sob_pct": 63.3
+    },
+    "I099": {
+      "vendor_id": "V002",
+      "target_sob_pct": 79.9
+    },
+    "I062": {
+      "vendor_id": "V001",
+      "target_sob_pct": 63.6
+    },
+    "I061": {
+      "vendor_id": "V001",
+      "target_sob_pct": 79.2
+    },
+    "I049": {
+      "vendor_id": "V005",
+      "target_sob_pct": 60.3
+    },
+    "I003": {
+      "vendor_id": "V002",
+      "target_sob_pct": 66.9
+    },
+    "I051": {
+      "vendor_id": "V001",
+      "target_sob_pct": 81.4
+    },
+    "I039": {
+      "vendor_id": "V005",
+      "target_sob_pct": 58.2
+    },
+    "I058": {
+      "vendor_id": "V002",
+      "target_sob_pct": 63.5
+    },
+    "I022": {
+      "vendor_id": "V001",
+      "target_sob_pct": 62.1
+    },
+    "I087": {
+      "vendor_id": "V009",
+      "target_sob_pct": 59.1
+    },
+    "I027": {
+      "vendor_id": "V003",
+      "target_sob_pct": 51.7
+    },
+    "I032": {
+      "vendor_id": "V005",
+      "target_sob_pct": 50.6
+    },
+    "I075": {
+      "vendor_id": "V003",
+      "target_sob_pct": 55.0
+    },
+    "I005": {
+      "vendor_id": "V007",
+      "target_sob_pct": 58.1
+    },
+    "I066": {
+      "vendor_id": "V004",
+      "target_sob_pct": 58.0
+    },
+    "I031": {
+      "vendor_id": "V003",
+      "target_sob_pct": 72.9
+    },
+    "I018": {
+      "vendor_id": "V006",
+      "target_sob_pct": 49.9
+    },
+    "I017": {
+      "vendor_id": "V007",
+      "target_sob_pct": 47.3
+    },
+    "I044": {
+      "vendor_id": "V003",
+      "target_sob_pct": 70.4
+    },
+    "I077": {
+      "vendor_id": "V001",
+      "target_sob_pct": 44.8
+    },
+    "I057": {
+      "vendor_id": "V005",
+      "target_sob_pct": 79.3
+    },
+    "I009": {
+      "vendor_id": "V003",
+      "target_sob_pct": 47.0
+    },
+    "I047": {
+      "vendor_id": "V003",
+      "target_sob_pct": 48.2
+    },
+    "I082": {
+      "vendor_id": "V001",
+      "target_sob_pct": 43.9
+    },
+    "I033": {
+      "vendor_id": "V002",
+      "target_sob_pct": 43.0
+    },
+    "I029": {
+      "vendor_id": "V004",
+      "target_sob_pct": 40.6
+    },
+    "I028": {
+      "vendor_id": "V004",
+      "target_sob_pct": 41.0
+    },
+    "I084": {
+      "vendor_id": "V003",
+      "target_sob_pct": 62.1
+    },
+    "I059": {
+      "vendor_id": "V009",
+      "target_sob_pct": 68.0
+    },
+    "I052": {
+      "vendor_id": "V002",
+      "target_sob_pct": 46.5
+    },
+    "I023": {
+      "vendor_id": "V003",
+      "target_sob_pct": 71.9
+    },
+    "I042": {
+      "vendor_id": "V005",
+      "target_sob_pct": 41.9
+    },
+    "I016": {
+      "vendor_id": "V005",
+      "target_sob_pct": 41.3
+    },
+    "I081": {
+      "vendor_id": "V009",
+      "target_sob_pct": 39.1
+    },
+    "I094": {
+      "vendor_id": "V003",
+      "target_sob_pct": 34.6
+    },
+    "I036": {
+      "vendor_id": "V002",
+      "target_sob_pct": 55.1
+    },
+    "I056": {
+      "vendor_id": "V001",
+      "target_sob_pct": 36.4
+    },
+    "I007": {
+      "vendor_id": "V004",
+      "target_sob_pct": 37.4
+    },
+    "I019": {
+      "vendor_id": "V001",
+      "target_sob_pct": 41.2
+    },
+    "I073": {
+      "vendor_id": "V002",
+      "target_sob_pct": 56.0
+    },
+    "I091": {
+      "vendor_id": "V005",
+      "target_sob_pct": 51.3
+    },
+    "I041": {
+      "vendor_id": "V002",
+      "target_sob_pct": 60.1
+    },
+    "I063": {
+      "vendor_id": "V002",
+      "target_sob_pct": 52.8
+    },
+    "I069": {
+      "vendor_id": "V005",
+      "target_sob_pct": 29.1
+    },
+    "I097": {
+      "vendor_id": "V005",
+      "target_sob_pct": 35.3
+    },
+    "I026": {
+      "vendor_id": "V003",
+      "target_sob_pct": 25.0
+    },
+    "I071": {
+      "vendor_id": "V002",
+      "target_sob_pct": 33.8
+    },
+    "I040": {
+      "vendor_id": "V002",
+      "target_sob_pct": 50.4
+    },
+    "I076": {
+      "vendor_id": "V003",
+      "target_sob_pct": 28.3
+    },
+    "I010": {
+      "vendor_id": "V005",
+      "target_sob_pct": 28.9
+    },
+    "I064": {
+      "vendor_id": "V008",
+      "target_sob_pct": 26.7
+    },
+    "I030": {
+      "vendor_id": "V001",
+      "target_sob_pct": 25.7
+    },
+    "I095": {
+      "vendor_id": "V010",
+      "target_sob_pct": 25.0
+    }
+  }
+}
