@@ -17,6 +17,11 @@ class Kpi(BaseModel):
     display: str                     # "Rs 18.0 Cr" - pre-formatted for the card
     delta_pct: float | None = None   # vs prior period; None = no comparison
     tone: Literal["neutral", "positive", "risk"] = "neutral"
+    # How this number is calculated, shown in small text under the card.
+    # Any metric where we had to choose a definition carries one, so the
+    # client can correct us in one sentence instead of quietly deciding the
+    # dashboard is wrong.
+    note: str | None = None
 
 
 class ChartSeries(BaseModel):

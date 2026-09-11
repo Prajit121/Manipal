@@ -13,6 +13,7 @@ export interface Kpi {
   display: string;
   delta_pct: number | null;
   tone: Tone;
+  note: string | null;
 }
 
 export interface ChartSeries {

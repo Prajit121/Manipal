@@ -190,3 +190,58 @@ def budget_kpis(actual_value: float, budget_value: float) -> dict:
         "variance_value": actual_value - budget_value,
         "variance_pct": safe_pct(actual_value - budget_value, budget_value),
     }
+
+
+# ---------------------------------------------------------------------------
+# Inventory Days
+# ---------------------------------------------------------------------------
+# CLIENT-SUPPLIED DEFINITION:
+#
+#   Inventory Days = (Stock Value x days elapsed in the month)
+#                    / (Consumption from the 1st of the month to that date)
+#
+# Month-to-date days of cover. On the 11th, "days elapsed" is 11. The window
+# resets on the 1st of each calendar month.
+#
+# NOTE ON GRAIN: our inventory table holds month-END snapshots only (24 dates
+# over two years), so we produce a MONTHLY series, not the daily one on their
+# "Daily N Inventory" page. Daily stock positions would be needed for that.
+def inventory_days(stock_value: float, consumption_mtd: float,
+                   days_elapsed: int) -> float:
+    if not consumption_mtd or not days_elapsed:
+        return 0.0
+    return round(stock_value * days_elapsed / consumption_mtd, 1)
+
+
+def inventory_days_series(inv_df: pd.DataFrame,
+                          cons_df: pd.DataFrame) -> pd.DataFrame:
+    """One Inventory Days figure per stock snapshot date."""
+    if not len(inv_df) or not len(cons_df):
+        return pd.DataFrame(columns=["Date", "inventory_days"])
+    rows = []
+    for snap_date, grp in inv_df.groupby("Date"):
+        month_start = snap_date.replace(day=1)
+        mtd = cons_df[(cons_df["Date"] >= month_start)
+                      & (cons_df["Date"] <= snap_date)]["Value"].sum()
+        rows.append({
+            "Date": snap_date,
+            "inventory_days": inventory_days(
+                float(grp["Stock_Value"].sum()), float(mtd), snap_date.day),
+        })
+    return pd.DataFrame(rows).sort_values("Date")
+
+
+def his_consumption(cons_df: pd.DataFrame) -> dict:
+    """
+    HIS consumption split by implant / non-implant. Implants are high-value
+    items that distort a consumption figure if left in, which is why their
+    report shows both.
+    """
+    total = total_value(cons_df)
+    implant = total_value(cons_df[cons_df["Is_Implant"] == True])  # noqa: E712
+    return {
+        "his_cons": total,
+        "implant_cons": implant,
+        "non_implant_cons": total - implant,
+        "implant_pct": safe_pct(implant, total),
+    }
