@@ -85,6 +85,16 @@ class DataStore:
         b["Month_Start"] = b["Date"].values.astype("datetime64[M]")
         self.budget = b
 
+        # --- SOB lookups --------------------------------------------------
+        # A molecule only presents a switching opportunity if a preferred
+        # brand actually exists for it. Precomputed once here so the routers
+        # never have to re-derive it.
+        from app.config import SOB_COMPLIANT_TIERS
+        pref = self.items[self.items["Formulary_Tier"].isin(SOB_COMPLIANT_TIERS)]
+        self.preferred_molecules = set(pref["Molecule"].unique())
+        self.preferred_by_molecule = (
+            pref.groupby("Molecule")["Item_Name"].apply(list).to_dict())
+
         # --- Filter dropdown lookups ---
         self.departments = sorted(c["Dept_Name"].dropna().unique().tolist())
         self.regions = sorted(self.units["Region"].unique().tolist())

@@ -28,7 +28,7 @@ DATA_START = date(2025, 1, 1)
 DATA_END = date(2026, 12, 31)
 
 # --- Business thresholds (all demo heuristics, clearly labelled) ----------
-FORMULARY_TARGET_PCT = 85.0    # reference line on the compliance trend chart
+FORMULARY_TARGET_PCT = 92.0    # reference line on the compliance trend chart
 SOB_OPPORTUNITY_PCT = 60.0     # top vendor below this share => opportunity
 NEAR_EXPIRY_DAYS = 90          # already baked into the dataset's expiry flag
 NON_MOVING_DAYS = 90           # no issue movement in this window

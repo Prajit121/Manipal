@@ -245,3 +245,57 @@ def his_consumption(cons_df: pd.DataFrame) -> dict:
         "non_implant_cons": total - implant,
         "implant_pct": safe_pct(implant, total),
     }
+
+
+# ---------------------------------------------------------------------------
+# Share of Business (brand mix within a molecule)
+# ---------------------------------------------------------------------------
+# SOB here is NOT vendor consolidation. The hospital agrees commitments with
+# manufacturers - "we will route X% of our volume in this molecule to your
+# brand" - and SOB tracks whether prescribing actually delivers that.
+#
+# The lever is a conversation with a doctor, not a supplier contract, which is
+# why the opportunity views break down by prescriber and by generic.
+def sob_tier_mix(df: pd.DataFrame, compliant_tiers: list[str]) -> dict:
+    """Headline split between preferred and non-preferred prescribing."""
+    total = total_value(df)
+    preferred = total_value(df[df["Formulary_Tier"].isin(compliant_tiers)])
+    return {
+        "total": total,
+        "preferred_value": preferred,
+        "non_preferred_value": total - preferred,
+        "compliance_pct": safe_pct(preferred, total),
+    }
+
+
+def sob_tier_by_month(df: pd.DataFrame, tier_order: list[str]) -> list[dict]:
+    """Tier share per month, as percentages summing to 100 - the stacked bar."""
+    if not len(df):
+        return []
+    rows = []
+    for month, grp in df.groupby("Month_Start"):
+        tot = grp["Value"].sum()
+        row = {"month": month.strftime("%b %y")}
+        for t in tier_order:
+            row[t] = safe_pct(grp.loc[grp["Formulary_Tier"] == t, "Value"].sum(), tot)
+        rows.append(row)
+    return rows
+
+
+def sob_opportunity(df: pd.DataFrame, preferred_molecules: set,
+                    compliant_tiers: list[str]) -> pd.DataFrame:
+    """
+    The switchable spend: consumption on a non-preferred brand WHERE a
+    preferred brand exists for the same molecule.
+
+    Consumption on a molecule with no preferred alternative is excluded - it
+    is not an opportunity, there is nothing to switch to. Counting it would
+    inflate the number and send someone chasing a conversation that cannot
+    have an outcome.
+    """
+    if not len(df):
+        return df
+    return df[
+        (~df["Formulary_Tier"].isin(compliant_tiers))
+        & (df["Molecule"].isin(preferred_molecules))
+    ]
