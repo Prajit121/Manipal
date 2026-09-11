@@ -164,3 +164,29 @@ def inventory_kpis(df: pd.DataFrame) -> dict:
         "expired_value": total_value(
             df[df["Expiry/Near Expiry"] == "Expired"], "Stock_Value"),
     }
+
+
+# ---------------------------------------------------------------------------
+# Budget (plan vs actual)
+# ---------------------------------------------------------------------------
+def budget_by_month(budget_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Monthly budget totals. ACTUAL is deliberately NOT read from this table -
+    it comes from the consumption frame via monthly_trend(), so the number on
+    the BUD-vs-ACT chart is the same number on the KPI card. Two sources for
+    one metric is how a demo falls apart in front of a client.
+    """
+    if not len(budget_df):
+        return pd.DataFrame(columns=["Month_Start", "Budget_Value"])
+    return (budget_df.groupby("Month_Start", as_index=False)["Budget_Value"]
+            .sum().sort_values("Month_Start"))
+
+
+def budget_kpis(actual_value: float, budget_value: float) -> dict:
+    """Utilisation and variance against plan."""
+    return {
+        "budget_value": budget_value,
+        "utilisation_pct": safe_pct(actual_value, budget_value),
+        "variance_value": actual_value - budget_value,
+        "variance_pct": safe_pct(actual_value - budget_value, budget_value),
+    }

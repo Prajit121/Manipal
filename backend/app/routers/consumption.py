@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends
 
 from app import metrics
 from app.data_loader import DataStore, get_store
-from app.filters import Filters, apply, get_filters
+from app.filters import ALL, Filters, apply, get_filters
 from app.formatting import inr_compact, pct, qty_compact
 from app.schemas import Chart, ChartSeries, DashboardResponse, Kpi, Table
 
@@ -39,6 +39,22 @@ def consumption_dashboard(
 
     k = metrics.consumption_kpis(df)
 
+    # --- Budget ------------------------------------------------------------
+    # Budget is held at month x unit x department grain. It has no Stock Take
+    # Group dimension, so when the user filters to Pharmacy or General Store
+    # we cannot split the plan to match - showing a full budget against a
+    # partial actual would overstate the gap. The BUD line is withheld rather
+    # than guessed at.
+    budget_available = f.stock_take_group == ALL
+    bud_monthly = None
+    bk = None
+    if budget_available:
+        bud_df = apply(store.budget, f, date_col="Date")
+        bud_monthly = metrics.budget_by_month(bud_df)
+        bud_total = float(bud_monthly["Budget_Value"].sum()) if len(bud_monthly) else 0.0
+        if bud_total:
+            bk = metrics.budget_kpis(k["total_value"], bud_total)
+
     kpis = [
         Kpi(label="Total Consumption Value", value=k["total_value"],
             display=inr_compact(k["total_value"])),
@@ -50,7 +66,39 @@ def consumption_dashboard(
             display=inr_compact(k["avg_per_txn"])),
     ]
 
+    if bk:
+        # Over budget is the risk case. Under budget is NOT automatically
+        # good in a hospital - it can mean stockouts - so under-spend stays
+        # neutral rather than green.
+        kpis.insert(1, Kpi(
+            label="Budget", value=bk["budget_value"],
+            display=inr_compact(bk["budget_value"])))
+        kpis.insert(2, Kpi(
+            label="Budget Utilisation", value=bk["utilisation_pct"],
+            display=pct(bk["utilisation_pct"]),
+            delta_pct=bk["variance_pct"],
+            tone="risk" if bk["utilisation_pct"] > 100 else "neutral"))
+
     charts = []
+
+    # --- Budget vs Actual - the headline chart on their Consumption page ----
+    if bud_monthly is not None and len(bud_monthly):
+        act_monthly = metrics.monthly_trend(df)
+        bud_map = dict(zip(bud_monthly["Month_Start"], bud_monthly["Budget_Value"]))
+        act_map = dict(zip(act_monthly["Month_Start"], act_monthly["Value"]))
+        months = sorted(set(act_map) | set(bud_map))
+        charts.append(Chart(
+            id="bud_vs_act", title="Budget vs Actual Consumption", type="line",
+            x_key="month",
+            series=[
+                ChartSeries(name="Budget", data=[
+                    {"month": m.strftime("%b %y"), "value": float(bud_map.get(m, 0))}
+                    for m in months]),
+                ChartSeries(name="Actual", data=[
+                    {"month": m.strftime("%b %y"), "value": float(act_map.get(m, 0))}
+                    for m in months]),
+            ],
+        ))
 
     yoy = metrics.year_over_year(df)
     charts.append(Chart(
@@ -132,6 +180,17 @@ def consumption_dashboard(
         insights.append(
             f"The top 10 items represent "
             f"{metrics.safe_pct(top_items['Value'].sum(), total)}% of total value.")
+    if bk:
+        over = "over" if bk["variance_value"] > 0 else "under"
+        insights.insert(0,
+            f"Consumption is {abs(bk['variance_pct']):.1f}% {over} budget "
+            f"({inr_compact(k['total_value'])} against a plan of "
+            f"{inr_compact(bk['budget_value'])}).")
+    elif not budget_available:
+        insights.append(
+            "Budget is planned by department, not by stock take group - "
+            "clear the group filter to compare against plan.")
+
     if yoy.get(2025) and yoy.get(2026):
         v25 = sum(r["value"] for r in yoy[2025])
         v26 = sum(r["value"] for r in yoy[2026])
