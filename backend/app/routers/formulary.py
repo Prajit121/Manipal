@@ -53,7 +53,7 @@ def formulary_dashboard(
     m.columns = ["Month_Start", "pct"]
     charts.append(Chart(
         id="compliance_trend", title="Formulary Compliance % by Month",
-        type="line", x_key="month",
+        type="line", x_key="month", value_format="percent",
         reference_line=FORMULARY_TARGET_PCT,
         series=[ChartSeries(name="Compliance %", data=[
             {"month": r["Month_Start"].strftime("%b %y"), "value": float(r["pct"])}

@@ -7,9 +7,9 @@ import type { FilterOptions, FilterState } from "@/lib/types";
 const PRESET_LABELS: Record<string, string> = {
   this_month: "This Month",
   this_quarter: "This Quarter",
-  ytd: "YTD",
-  "2025": "2025",
-  "2026": "2026",
+  ytd: "FY YTD",
+  fy2025: "FY2025",
+  fy2026: "FY2026",
   full_range: "Full Range",
 };
 

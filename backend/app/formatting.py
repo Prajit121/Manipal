@@ -2,17 +2,16 @@
 
 
 def inr_compact(value: float) -> str:
-    """18000000 -> '₹1.80 Cr'. Used on KPI cards where space is tight."""
+    """
+    Always expressed in Crores - matches the client's own convention, "All
+    Values are in Crores", visible in the header of every PRAVAH screenshot.
+    Used on KPI cards and chart axes. Table cells keep exact Rupees via
+    inr_full - a per-item row showing "Rs 0.00 Cr" would be useless.
+    """
     v = float(value or 0)
     sign = "-" if v < 0 else ""
-    v = abs(v)
-    if v >= 1e7:
-        return f"{sign}₹{v / 1e7:.2f} Cr"
-    if v >= 1e5:
-        return f"{sign}₹{v / 1e5:.2f} L"
-    if v >= 1e3:
-        return f"{sign}₹{v / 1e3:.1f} K"
-    return f"{sign}₹{v:.0f}"
+    cr = abs(v) / 1e7
+    return f"{sign}₹{cr:.2f} Cr"
 
 
 def inr_full(value: float) -> str:

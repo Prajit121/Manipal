@@ -30,12 +30,26 @@ function mergeSeries(spec: ChartSpec) {
   return Array.from(byX.values());
 }
 
-const fmt = (v: number) => inrCompact(v);
+/**
+ * A chart's Y axis is currency, a percentage, or a plain count (days,
+ * items) - never assume currency. The backend tags every chart with
+ * value_format; this just renders whatever it says. Getting this wrong is
+ * how a day-count chart ends up with a Rs sign on axis it (see
+ * inventory_days_trend / expiry_risk - both fixed by this).
+ */
+function makeFormatter(format: ChartSpec["value_format"]) {
+  return (v: number) => {
+    if (format === "percent") return `${v.toFixed(1)}%`;
+    if (format === "number") return v.toLocaleString("en-IN", { maximumFractionDigits: 0 });
+    return inrCompact(v);
+  };
+}
 
 export default function ChartPanel({ spec }: { spec: ChartSpec }) {
   const names = spec.series.map((s) => s.name);
   const data = mergeSeries(spec);
   const horizontal = spec.type === "hbar";
+  const fmt = makeFormatter(spec.value_format);
 
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-4">

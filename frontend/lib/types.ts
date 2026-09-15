@@ -28,6 +28,7 @@ export interface Chart {
   x_key: string;
   series: ChartSeries[];
   reference_line: number | null;
+  value_format: "currency" | "percent" | "number";
 }
 
 export interface TableColumn {

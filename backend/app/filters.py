@@ -25,9 +25,13 @@ PRESETS: dict[str, tuple[date, date]] = {
         AS_OF_DATE.replace(month=((AS_OF_DATE.month - 1) // 3) * 3 + 1, day=1),
         AS_OF_DATE,
     ),
-    "ytd": (AS_OF_DATE.replace(month=1, day=1), AS_OF_DATE),
-    "2025": (date(2025, 1, 1), date(2025, 12, 31)),
-    "2026": (date(2026, 1, 1), date(2026, 12, 31)),
+    # Fiscal YTD: Apr 1 of the current fiscal year through AS_OF_DATE.
+    "ytd": (
+        date(AS_OF_DATE.year if AS_OF_DATE.month >= 4 else AS_OF_DATE.year - 1, 4, 1),
+        AS_OF_DATE,
+    ),
+    "fy2025": (date(2024, 4, 1), date(2025, 3, 31)),
+    "fy2026": (date(2025, 4, 1), date(2026, 3, 31)),
     "full_range": (DATA_START, DATA_END),
 }
 

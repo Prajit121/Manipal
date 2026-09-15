@@ -93,7 +93,7 @@ def inventory_dashboard(
     if len(days_series):
         charts.append(Chart(
             id="inventory_days_trend", title="Inventory Days Trend", type="line",
-            x_key="month",
+            x_key="month", value_format="number",
             series=[ChartSeries(name="Inventory Days", data=[
                 {"month": r["Date"].strftime("%b %y"),
                  "value": float(r["inventory_days"])}
@@ -146,7 +146,7 @@ def inventory_dashboard(
         })
     charts.append(Chart(
         id="expiry_risk", title="Expiry Risk Trend (% of stock value)",
-        type="line", x_key="month",
+        type="line", x_key="month", value_format="percent",
         series=[
             ChartSeries(name="Near Expiry %", data=[
                 {"month": r["month"], "value": r["near"]} for r in exp_rows]),

@@ -18,12 +18,11 @@ export function inrFull(value: number): string {
 }
 
 export function inrCompact(value: number): string {
-  const v = Math.abs(value);
+  // Always Crores - matches the client's own "All Values are in Crores"
+  // convention. Table cells use inrFull instead (exact Rupees per row).
+  const cr = Math.abs(value) / 1e7;
   const sign = value < 0 ? "-" : "";
-  if (v >= 1e7) return `${sign}₹${(v / 1e7).toFixed(2)} Cr`;
-  if (v >= 1e5) return `${sign}₹${(v / 1e5).toFixed(2)} L`;
-  if (v >= 1e3) return `${sign}₹${(v / 1e3).toFixed(1)} K`;
-  return `${sign}₹${v.toFixed(0)}`;
+  return `${sign}₹${cr.toFixed(2)} Cr`;
 }
 
 export function numberFull(value: number): string {

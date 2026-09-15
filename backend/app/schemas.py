@@ -37,6 +37,7 @@ class Chart(BaseModel):
     x_key: str                       # which dict key is the category axis
     series: list[ChartSeries]
     reference_line: float | None = None
+    value_format: Literal["currency", "percent", "number"] = "currency"
 
 
 class Table(BaseModel):

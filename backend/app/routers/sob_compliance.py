@@ -27,6 +27,7 @@ def _stacked(df, payers, chart_id, title):
         return None
     return Chart(
         id=chart_id, title=title, type="stacked_bar", x_key="month",
+        value_format="percent",
         series=[
             ChartSeries(name=f"{t} - {TIER_LABELS[t]}", data=[
                 {"month": r["month"], "value": r[t]} for r in rows])
@@ -99,7 +100,7 @@ def sob_compliance_dashboard(
         })
     charts.append(Chart(
         id="compliance_trend", title="SOB Compliance % by Month", type="line",
-        x_key="month",
+        x_key="month", value_format="percent",
         series=[ChartSeries(name="Compliance %", data=trend)],
     ))
 
