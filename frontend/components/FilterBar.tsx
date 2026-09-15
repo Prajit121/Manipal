@@ -18,32 +18,29 @@ interface Props {
   onChange: (next: FilterState) => void;
 }
 
-// The network hierarchy (Region/Zone/Cluster) is scoped to two units for this
-// presentation - Pune and Goa share one Region and each sits alone in its own
-// Zone/Cluster, so those three dropdowns would offer nothing a plain Unit
-// selector doesn't already. Removed rather than shown half-broken. The
-// backend and data still carry the full 12-unit hierarchy (app/config.py:
-// ACTIVE_UNITS) - restoring the other three dropdowns is switching that list
-// back, not rebuilding this component.
+// Stacked for the sidebar rather than a row - the network hierarchy (Region/
+// Zone/Cluster) is scoped to two units for this presentation, so only Unit
+// is shown; see app/config.py: ACTIVE_UNITS to restore the rest later.
 export default function FilterBar({ options, value, onChange }: Props) {
   const units = options?.units ?? [];
   const set = (patch: Partial<FilterState>) => onChange({ ...value, ...patch });
 
   const cls =
-    "rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm " +
+    "w-full rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-sm " +
     "text-slate-700 focus:border-sky-500 focus:outline-none";
+  const label = "block text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-1";
 
   const isFiltered =
     value.unit !== "All" || value.department !== "All" ||
     value.stock_take_group !== "All";
 
   return (
-    <div className="space-y-3 rounded-lg border border-slate-200 bg-white p-3">
-      <div className="flex flex-wrap items-center gap-3">
-        <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+    <div className="space-y-4">
+      <div>
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
           Scope
-        </span>
-
+        </p>
+        <label className={label}>Unit</label>
         <select className={cls} value={value.unit}
                 onChange={(e) => set({ unit: e.target.value })}>
           <option value="All">All Units</option>
@@ -53,36 +50,40 @@ export default function FilterBar({ options, value, onChange }: Props) {
             </option>
           ))}
         </select>
-
-        <span className="ml-auto rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+        <p className="mt-2 inline-block rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">
           Viewing: {scopeLabel(value, options)}
-        </span>
+        </p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 border-t border-slate-100 pt-3">
-        <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+      <div className="space-y-3 border-t border-slate-100 pt-3">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
           Filters
-        </span>
-
-        <select className={cls} value={value.department}
-                onChange={(e) => set({ department: e.target.value })}>
-          <option value="All">All Departments</option>
-          {options?.departments.map((d) => <option key={d} value={d}>{d}</option>)}
-        </select>
-
-        <select className={cls} value={value.stock_take_group}
-                onChange={(e) => set({ stock_take_group: e.target.value })}>
-          <option value="All">All Groups</option>
-          {options?.stock_take_groups.map((g) => <option key={g} value={g}>{g}</option>)}
-        </select>
-
-        <select className={cls} value={value.preset}
-                onChange={(e) => set({ preset: e.target.value })}>
-          {options?.presets.map((p) => (
-            <option key={p} value={p}>{PRESET_LABELS[p] ?? p}</option>
-          ))}
-        </select>
-
+        </p>
+        <div>
+          <label className={label}>Department</label>
+          <select className={cls} value={value.department}
+                  onChange={(e) => set({ department: e.target.value })}>
+            <option value="All">All Departments</option>
+            {options?.departments.map((d) => <option key={d} value={d}>{d}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className={label}>Stock Take Group</label>
+          <select className={cls} value={value.stock_take_group}
+                  onChange={(e) => set({ stock_take_group: e.target.value })}>
+            <option value="All">All Groups</option>
+            {options?.stock_take_groups.map((g) => <option key={g} value={g}>{g}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className={label}>Period</label>
+          <select className={cls} value={value.preset}
+                  onChange={(e) => set({ preset: e.target.value })}>
+            {options?.presets.map((p) => (
+              <option key={p} value={p}>{PRESET_LABELS[p] ?? p}</option>
+            ))}
+          </select>
+        </div>
         {isFiltered && (
           <button className="text-xs text-sky-600 underline"
                   onClick={() => onChange({

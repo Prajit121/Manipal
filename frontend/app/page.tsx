@@ -2,28 +2,16 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import FilterBar from "@/components/FilterBar";
-import { fetchDashboard, fetchFilterOptions, scopeLabel } from "@/lib/api";
+import { fetchDashboard, scopeLabel } from "@/lib/api";
+import { useFilters } from "@/lib/filter-context";
 import { DASHBOARDS } from "@/lib/nav";
-import type { DashboardResponse, FilterOptions, FilterState } from "@/lib/types";
-
-const DEFAULT_FILTERS: FilterState = {
-  region: "All", zone: "All", cluster: "All", unit: "All",
-  department: "All", stock_take_group: "All", preset: "full_range",
-};
+import type { DashboardResponse } from "@/lib/types";
 
 export default function OverviewPage() {
-  const [options, setOptions] = useState<FilterOptions | null>(null);
-  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+  const { filters, options } = useFilters();
   const [data, setData] = useState<Record<string, DashboardResponse>>({});
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchFilterOptions().then(setOptions).catch(() => {});
-  }, []);
-
-  // Every dashboard is fetched in parallel and shares the same filter state,
-  // so the whole overview reflects one consistent scope.
   useEffect(() => {
     setLoading(true);
     Promise.all(
@@ -44,15 +32,13 @@ export default function OverviewPage() {
       <header>
         <h1 className="text-2xl font-semibold text-slate-900">Overview</h1>
         <p className="text-sm text-slate-500">
-          All five dashboards at a glance{" "}
+          All dashboards at a glance{" "}
           <span className="text-slate-400">&middot;</span>{" "}
           <span className="font-medium text-slate-600">
             {scopeLabel(filters, options)}
           </span>
         </p>
       </header>
-
-      <FilterBar options={options} value={filters} onChange={setFilters} />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {DASHBOARDS.map((d) => {

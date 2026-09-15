@@ -3,41 +3,26 @@
 import { useEffect, useState } from "react";
 import ChartPanel from "@/components/ChartPanel";
 import DataTable from "@/components/DataTable";
-import FilterBar from "@/components/FilterBar";
 import InsightCallout from "@/components/InsightCallout";
 import KpiCard from "@/components/KpiCard";
-import { fetchDashboard, fetchFilterOptions, scopeLabel } from "@/lib/api";
-import type { DashboardResponse, FilterOptions, FilterState } from "@/lib/types";
-
-const DEFAULT_FILTERS: FilterState = {
-  region: "All",
-  zone: "All",
-  cluster: "All",
-  unit: "All",
-  department: "All",
-  stock_take_group: "All",
-  preset: "full_range",
-};
+import { fetchDashboard } from "@/lib/api";
+import { useFilters } from "@/lib/filter-context";
+import type { DashboardResponse } from "@/lib/types";
 
 interface Props {
-  slug: string;      // API path and route, from lib/nav.ts
+  slug: string;
   title: string;
   subtitle: string;
 }
 
-// Every dashboard renders through this one component. That only works because
-// all five endpoints return the identical envelope - the contract locked in
-// schemas.py is what makes the frontend this small.
+// Every dashboard renders through this one component. Filters are no longer
+// owned here - they live once, in the sidebar (see layout.tsx +
+// lib/filter-context.tsx), so switching pages never resets them.
 export default function DashboardPage({ slug, title, subtitle }: Props) {
-  const [options, setOptions] = useState<FilterOptions | null>(null);
-  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+  const { filters } = useFilters();
   const [data, setData] = useState<DashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchFilterOptions().then(setOptions).catch(() => {});
-  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -52,15 +37,8 @@ export default function DashboardPage({ slug, title, subtitle }: Props) {
     <div className="space-y-5">
       <header>
         <h1 className="text-2xl font-semibold text-slate-900">{title}</h1>
-        <p className="text-sm text-slate-500">
-          {subtitle} <span className="text-slate-400">&middot;</span>{" "}
-          <span className="font-medium text-slate-600">
-            {scopeLabel(filters, options)}
-          </span>
-        </p>
+        <p className="text-sm text-slate-500">{subtitle}</p>
       </header>
-
-      <FilterBar options={options} value={filters} onChange={setFilters} />
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
@@ -82,10 +60,6 @@ export default function DashboardPage({ slug, title, subtitle }: Props) {
       {!loading && data && data.row_count === 0 && (
         <div className="rounded-lg border border-slate-200 bg-white p-10 text-center">
           <p className="text-slate-600">No data for the selected filters.</p>
-          <button className="mt-3 text-sm text-sky-600 underline"
-                  onClick={() => setFilters(DEFAULT_FILTERS)}>
-            Reset filters
-          </button>
         </div>
       )}
 
