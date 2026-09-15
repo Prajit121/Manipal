@@ -68,8 +68,6 @@ export default function DashboardPage({ slug, title, subtitle }: Props) {
             {data.kpis.map((k) => <KpiCard key={k.label} kpi={k} />)}
           </div>
 
-          <InsightCallout insights={data.insights} />
-
           <div className="grid gap-4 lg:grid-cols-2">
             {data.charts.map((c) => <ChartPanel key={c.id} spec={c} />)}
           </div>

@@ -13,11 +13,11 @@ import DrilldownDonut from "./DrilldownDonut";
 // High-contrast categorical palette. Blue and green are now genuinely
 // different hues (not two teals that read as the same color at a glance).
 // Red is deliberately excluded - reserved for risk flags on KPI cards only.
-const COLORS = ["#2563eb", "#ea580c", "#7c3aed", "#16a34a",
-                "#db2777", "#ca8a04", "#0891b2", "#4f46e5"];
+const COLORS = ["#0f4c75", "#8b2500", "#c9a227", "#5b7f5b",
+                "#3282b8", "#7a5c3e", "#4a4a4a", "#bbe1fa"];
 
 const MONTHS = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];  
 
 const LEGEND_STYLE = { fontSize: 12, fontWeight: 400 };
 
