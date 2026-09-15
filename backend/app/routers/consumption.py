@@ -1,13 +1,4 @@
-"""
-Consumption dashboard endpoint.
-
-This is the TEMPLATE. The other four routers copy this structure:
-    1. inject filters + store
-    2. apply(...) to the right fact table
-    3. call metrics.* for every number - never aggregate inline
-    4. assemble kpis / charts / table / insights
-    5. return DashboardResponse
-"""
+"""Consumption dashboard endpoint."""
 
 from fastapi import APIRouter, Depends
 
@@ -19,6 +10,8 @@ from app.schemas import Chart, ChartSeries, DashboardResponse, Kpi, Table
 
 router = APIRouter(prefix="/api", tags=["consumption"])
 
+AGE_ORDER = ["Below 30", "30 - 60", "60 - 90", "Above 90"]
+
 
 @router.get("/consumption", response_model=DashboardResponse)
 def consumption_dashboard(
@@ -27,8 +20,6 @@ def consumption_dashboard(
 ) -> DashboardResponse:
     df = apply(store.consumption, f, date_col="Date")
 
-    # Empty filter combination. Return the envelope with empty collections so
-    # the frontend renders its empty state, not a wall of blank charts.
     if not len(df):
         return DashboardResponse(
             filters=f.as_dict(), kpis=[], charts=[],
@@ -39,12 +30,9 @@ def consumption_dashboard(
 
     k = metrics.consumption_kpis(df)
 
-    # --- Budget ------------------------------------------------------------
-    # Budget is held at month x unit x department grain. It has no Stock Take
-    # Group dimension, so when the user filters to Pharmacy or General Store
-    # we cannot split the plan to match - showing a full budget against a
-    # partial actual would overstate the gap. The BUD line is withheld rather
-    # than guessed at.
+    # --- Budget --------------------------------------------------------
+    # Budget has no Stock Take Group dimension, so it is withheld when that
+    # filter is active rather than compared against a partial actual.
     budget_available = f.stock_take_group == ALL
     bud_monthly = None
     bk = None
@@ -65,11 +53,7 @@ def consumption_dashboard(
         Kpi(label="Avg Value / Transaction", value=k["avg_per_txn"],
             display=inr_compact(k["avg_per_txn"])),
     ]
-
     if bk:
-        # Over budget is the risk case. Under budget is NOT automatically
-        # good in a hospital - it can mean stockouts - so under-spend stays
-        # neutral rather than green.
         kpis.insert(1, Kpi(
             label="Budget", value=bk["budget_value"],
             display=inr_compact(bk["budget_value"])))
@@ -81,71 +65,67 @@ def consumption_dashboard(
 
     charts = []
 
-    # --- Budget vs Actual - the headline chart on their Consumption page ----
+    # 1. Consumption Trend - Budget vs Actual by month.
     if bud_monthly is not None and len(bud_monthly):
         act_monthly = metrics.monthly_trend(df)
         bud_map = dict(zip(bud_monthly["Month_Start"], bud_monthly["Budget_Value"]))
         act_map = dict(zip(act_monthly["Month_Start"], act_monthly["Value"]))
         months = sorted(set(act_map) | set(bud_map))
         charts.append(Chart(
-            id="bud_vs_act", title="Budget vs Actual Consumption", type="line",
+            id="consumption_trend", title="Consumption Trend", type="line",
             x_key="month",
             series=[
-                ChartSeries(name="Budget", data=[
+                ChartSeries(name="BUD", data=[
                     {"month": m.strftime("%b %y"), "value": float(bud_map.get(m, 0))}
                     for m in months]),
-                ChartSeries(name="Actual", data=[
+                ChartSeries(name="ACT", data=[
                     {"month": m.strftime("%b %y"), "value": float(act_map.get(m, 0))}
                     for m in months]),
             ],
         ))
 
-    yoy = metrics.year_over_year(df)
-    charts.append(Chart(
-        id="yoy_trend", title="Monthly Consumption Value - 2025 vs 2026",
-        type="line", x_key="month",
-        series=[ChartSeries(name=str(year), data=rows)
-                for year, rows in sorted(yoy.items())],
-    ))
+    # 2. Closing Stock Ageing (Cr) - monthly stacked bar, from inventory.
+    inv = apply(store.inventory, f, date_col="Date")
+    if len(inv):
+        rows = []
+        for month, grp in inv.groupby("Month_Start"):
+            row = {"month": month.strftime("%b %y")}
+            for bucket in AGE_ORDER:
+                row[bucket] = float(grp.loc[grp["Ageing"] == bucket, "Stock_Value"].sum())
+            rows.append(row)
+        charts.append(Chart(
+            id="closing_stock_ageing", title="Closing Stock Ageing (Cr)",
+            type="stacked_bar", x_key="month",
+            series=[ChartSeries(name=b, data=[
+                {"month": r["month"], "value": r[b]} for r in rows])
+                for b in AGE_ORDER],
+        ))
 
-    dept = metrics.breakdown(df, "Dept_Name")
+    # 3. Top 10 by store location - consumption.
+    # FAKE DIMENSION: Store_Location doesn't exist in real hospital data we
+    # have; it's generated (add_store_location.py) to mirror the client's
+    # location-level breakdown. Clearly labelled, not read off any document.
+    loc = metrics.breakdown(df, "Store_Location", top_n=10)
     charts.append(Chart(
-        id="by_department", title="Consumption Value by Department", type="bar",
-        x_key="label",
+        id="top_locations_consumption",
+        title="Top 10 Location-wise Consumption", type="hbar", x_key="label",
         series=[ChartSeries(name="Value", data=[
-            {"label": r["Dept_Name"], "value": float(r["Value"])}
-            for _, r in dept.iterrows()])],
+            {"label": r["Store_Location"], "value": float(r["Value"])}
+            for _, r in loc.iterrows()])],
     ))
 
-    spec = metrics.breakdown(df, "Specialty")
-    charts.append(Chart(
-        id="by_specialty", title="Consumption Value by Doctor Specialty",
-        type="donut", x_key="label",
-        series=[ChartSeries(name="Value", data=[
-            {"label": r["Specialty"], "value": float(r["Value"])}
-            for _, r in spec.iterrows()])],
-    ))
-
-    ptype = df.groupby(["Month_Start", "Patient_Type"], as_index=False)["Value"].sum()
-    charts.append(Chart(
-        id="op_ip_split", title="OP vs IP Split Over Time", type="stacked_bar",
-        x_key="month",
-        series=[
-            ChartSeries(name=pt, data=[
-                {"month": r["Month_Start"].strftime("%b %Y"), "value": float(r["Value"])}
-                for _, r in grp.sort_values("Month_Start").iterrows()])
-            for pt, grp in ptype.groupby("Patient_Type")
-        ],
-    ))
-
-    top_items = metrics.breakdown(df, "Item_Name", top_n=10)
-    charts.append(Chart(
-        id="top_items", title="Top 10 Items by Consumption Value", type="hbar",
-        x_key="label",
-        series=[ChartSeries(name="Value", data=[
-            {"label": r["Item_Name"], "value": float(r["Value"])}
-            for _, r in top_items.iterrows()])],
-    ))
+    # 4. Top 10 by store location - inventory value (latest snapshot).
+    if len(inv):
+        as_on = inv["Date"].max()
+        snap = inv[inv["Date"] == as_on]
+        loc_inv = metrics.breakdown(snap, "Store_Location", value_col="Stock_Value", top_n=10)
+        charts.append(Chart(
+            id="top_locations_inventory",
+            title="Top 10 Location-wise Inventory Value", type="bar", x_key="label",
+            series=[ChartSeries(name="Stock Value", data=[
+                {"label": r["Store_Location"], "value": float(r["Stock_Value"])}
+                for _, r in loc_inv.iterrows()])],
+        ))
 
     agg = (df.groupby(["Item_ID", "Item_Name", "Category"], as_index=False)
              .agg(Qty=("Qty", "sum"), Value=("Value", "sum"))
@@ -168,21 +148,10 @@ def consumption_dashboard(
         } for _, r in agg.iterrows()],
     )
 
-    # Insight callouts - computed from filtered data, never hardcoded.
     insights = []
-    if len(dept):
-        top_dept = dept.iloc[0]
-        insights.append(
-            f"{top_dept['Dept_Name']} accounts for "
-            f"{metrics.safe_pct(top_dept['Value'], total)}% of consumption value "
-            f"in this period.")
-    if len(top_items):
-        insights.append(
-            f"The top 10 items represent "
-            f"{metrics.safe_pct(top_items['Value'].sum(), total)}% of total value.")
     if bk:
         over = "over" if bk["variance_value"] > 0 else "under"
-        insights.insert(0,
+        insights.append(
             f"Consumption is {abs(bk['variance_pct']):.1f}% {over} budget "
             f"({inr_compact(k['total_value'])} against a plan of "
             f"{inr_compact(bk['budget_value'])}).")
@@ -190,13 +159,14 @@ def consumption_dashboard(
         insights.append(
             "Budget is planned by department, not by stock take group - "
             "clear the group filter to compare against plan.")
-
-    if yoy.get(2025) and yoy.get(2026):
-        v25 = sum(r["value"] for r in yoy[2025])
-        v26 = sum(r["value"] for r in yoy[2026])
-        if v25:
-            insights.append(
-                f"2026 consumption is {((v26 / v25) - 1) * 100:+.1f}% versus 2025.")
+    if len(loc):
+        insights.append(
+            f"{loc.iloc[0]['Store_Location']} is the top consumption "
+            f"location at {inr_compact(loc.iloc[0]['Value'])}.")
+    insights.append(
+        "Location-wise breakdowns use a synthetic Store Location - the real "
+        "data has no in-hospital location dimension. Structure matches the "
+        "client's report; the specific locations are illustrative.")
 
     return DashboardResponse(
         filters=f.as_dict(), kpis=kpis, charts=charts, table=table,
