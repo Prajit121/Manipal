@@ -49,9 +49,6 @@ def consumption_dashboard(
         Kpi(label="Total Qty Consumed", value=k["total_qty"],
             display=qty_compact(k["total_qty"])),
         Kpi(label="IP Share", value=k["ip_pct"], display=pct(k["ip_pct"])),
-        Kpi(label="OP Share", value=k["op_pct"], display=pct(k["op_pct"])),
-        Kpi(label="Avg Value / Transaction", value=k["avg_per_txn"],
-            display=inr_compact(k["avg_per_txn"])),
     ]
     if bk:
         kpis.insert(1, Kpi(
