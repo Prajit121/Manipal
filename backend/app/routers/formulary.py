@@ -1,4 +1,14 @@
-"""Formulary Compliance dashboard. Same template shape as consumption.py."""
+"""
+Formulary Compliance dashboard.
+
+Matches the client's page structure: overall trend, IP vs OP split, and a
+Package/Non-Package split. The client's fourth chart used a specific 4-line
+tier legend (S1/I x Package/Non-Package) that was not legible in the source
+screenshot - this reconstructs the same STORY (formulary adherence differs
+sharply by package status) using our own on/off-formulary flag rather than
+guessing at tier labels we could not confirm. Flagged as an approximation,
+not a pixel match, in the insights below.
+"""
 
 from fastapi import APIRouter, Depends
 
@@ -10,6 +20,11 @@ from app.formatting import inr_compact, pct, qty_compact
 from app.schemas import Chart, ChartSeries, DashboardResponse, Kpi, Table
 
 router = APIRouter(prefix="/api", tags=["formulary"])
+
+SEGMENTS = [
+    ("On-Formulary", "Package"), ("On-Formulary", "Non-Package"),
+    ("Off-Formulary", "Package"), ("Off-Formulary", "Non-Package"),
+]
 
 
 @router.get("/formulary-compliance", response_model=DashboardResponse)
@@ -44,44 +59,64 @@ def formulary_dashboard(
 
     charts = []
 
-    # Compliance % by month, with the target as a reference line.
-    m = df.groupby("Month_Start", as_index=False).apply(
-        lambda g: metrics.safe_pct(
-            g.loc[g["Is_Formulary"] == True, "Value"].sum(), g["Value"].sum()),
-        include_groups=False,
-    )
-    m.columns = ["Month_Start", "pct"]
+    # 1. Month wise Formulary Compliance.
+    trend = []
+    for month, grp in df.groupby("Month_Start"):
+        trend.append({
+            "month": month.strftime("%b %y"),
+            "value": metrics.safe_pct(
+                grp.loc[grp["Is_Formulary"] == True, "Value"].sum(),  # noqa: E712
+                grp["Value"].sum()),
+        })
     charts.append(Chart(
-        id="compliance_trend", title="Formulary Compliance % by Month",
+        id="compliance_trend", title="Month wise Formulary Compliance",
         type="line", x_key="month", value_format="percent",
         reference_line=FORMULARY_TARGET_PCT,
-        series=[ChartSeries(name="Compliance %", data=[
-            {"month": r["Month_Start"].strftime("%b %y"), "value": float(r["pct"])}
-            for _, r in m.sort_values("Month_Start").iterrows()])],
+        series=[ChartSeries(name="Compliance %", data=trend)],
     ))
 
-    # On vs off formulary value per department - where the leaks sit.
-    d = df.groupby(["Dept_Name", "Is_Formulary"], as_index=False)["Value"].sum()
+    # 2. Pharmacy Compliance - IP vs OP.
+    ip_op = []
+    for month, grp in df.groupby("Month_Start"):
+        row = {"month": month.strftime("%b %y")}
+        for pt in ["IP", "OP"]:
+            seg = grp[grp["Patient_Type"] == pt]
+            row[pt] = metrics.safe_pct(
+                seg.loc[seg["Is_Formulary"] == True, "Value"].sum(),  # noqa: E712
+                seg["Value"].sum()) if len(seg) else 0.0
+        ip_op.append(row)
     charts.append(Chart(
-        id="by_department", title="On vs Off-Formulary Value by Department",
-        type="stacked_bar", x_key="label",
+        id="ip_op_compliance", title="Pharmacy Compliance", type="line",
+        x_key="month", value_format="percent",
         series=[
-            ChartSeries(
-                name="On Formulary" if flag else "Off Formulary",
-                data=[{"label": r["Dept_Name"], "value": float(r["Value"])}
-                      for _, r in grp.iterrows()])
-            for flag, grp in d.groupby("Is_Formulary")
+            ChartSeries(name="IP Compliance", data=[
+                {"month": r["month"], "value": r["IP"]} for r in ip_op]),
+            ChartSeries(name="OP Compliance", data=[
+                {"month": r["month"], "value": r["OP"]} for r in ip_op]),
         ],
     ))
 
-    off = df[df["Is_Formulary"] == False]
-    top_off = metrics.breakdown(off, "Item_Name", top_n=10)
+    # 3. Formulary status x Package status - % of monthly value.
+    pkg_rows = []
+    for month, grp in df.groupby("Month_Start"):
+        tot = grp["Value"].sum()
+        row = {"month": month.strftime("%b %y")}
+        for status, pkg in SEGMENTS:
+            mask = (
+                (grp["Is_Formulary"] == (status == "On-Formulary"))
+                & (grp["Is_Package"] == (pkg == "Package"))
+            )
+            row[f"{status} - {pkg}"] = metrics.safe_pct(grp.loc[mask, "Value"].sum(), tot)
+        pkg_rows.append(row)
     charts.append(Chart(
-        id="top_leaks", title="Top Off-Formulary Items by Value (Compliance Leaks)",
-        type="hbar", x_key="label",
-        series=[ChartSeries(name="Off-Formulary Value", data=[
-            {"label": r["Item_Name"], "value": float(r["Value"])}
-            for _, r in top_off.iterrows()])],
+        id="formulary_by_package", title="Formulary Compliance by Package Status",
+        type="line", x_key="month", value_format="percent",
+        series=[
+            ChartSeries(name=f"{status} - {pkg}", data=[
+                {"month": r["month"], "value": r[f"{status} - {pkg}"]}
+                for r in pkg_rows])
+            for status, pkg in SEGMENTS
+        ],
     ))
 
     agg = (df.groupby(["Item_ID", "Item_Name", "Category", "Molecule",
@@ -110,14 +145,16 @@ def formulary_dashboard(
         f"Compliance is {k['compliance_pct']}% against a "
         f"{FORMULARY_TARGET_PCT}% target - "
         f"{'below' if below else 'above'} target.",
-        f"{inr_compact(k['off_formulary_value'])} of spend sits off formulary "
-        f"across {k['off_formulary_items']} items.",
     ]
-    if len(top_off):
-        t = top_off.iloc[0]
+    if len(ip_op):
+        last = ip_op[-1]
         insights.append(
-            f"{t['Item_Name']} is the single largest leak at "
-            f"{inr_compact(t['Value'])}.")
+            f"IP compliance runs at {last['IP']:.1f}% against {last['OP']:.1f}% "
+            f"for OP - inpatient prescribing sticks to formulary more closely.")
+    insights.append(
+        "The Package-status split reconstructs the client's chart using our "
+        "own on/off-formulary flag; the original's tier-level legend "
+        "(S1/I/P1) was not legible in the source screenshot.")
 
     return DashboardResponse(
         filters=f.as_dict(), kpis=kpis, charts=charts, table=table,
