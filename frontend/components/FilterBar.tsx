@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
 import { scopeLabel } from "@/lib/api";
 import type { FilterOptions, FilterState } from "@/lib/types";
 
@@ -19,33 +18,15 @@ interface Props {
   onChange: (next: FilterState) => void;
 }
 
+// The network hierarchy (Region/Zone/Cluster) is scoped to two units for this
+// presentation - Pune and Goa share one Region and each sits alone in its own
+// Zone/Cluster, so those three dropdowns would offer nothing a plain Unit
+// selector doesn't already. Removed rather than shown half-broken. The
+// backend and data still carry the full 12-unit hierarchy (app/config.py:
+// ACTIVE_UNITS) - restoring the other three dropdowns is switching that list
+// back, not rebuilding this component.
 export default function FilterBar({ options, value, onChange }: Props) {
   const units = options?.units ?? [];
-
-  // Cascading: each level only offers children of what is selected above it.
-  // Picking a level clears everything below, so you can never end up with an
-  // impossible combination like Region=North + Unit=H001.
-  const zones = useMemo(() => {
-    const pool = value.region === "All"
-      ? units : units.filter((u) => u.Region === value.region);
-    return [...new Set(pool.map((u) => u.Zone))].sort();
-  }, [units, value.region]);
-
-  const clusters = useMemo(() => {
-    let pool = units;
-    if (value.region !== "All") pool = pool.filter((u) => u.Region === value.region);
-    if (value.zone !== "All") pool = pool.filter((u) => u.Zone === value.zone);
-    return [...new Set(pool.map((u) => u.Cluster))].sort();
-  }, [units, value.region, value.zone]);
-
-  const unitList = useMemo(() => {
-    let pool = units;
-    if (value.region !== "All") pool = pool.filter((u) => u.Region === value.region);
-    if (value.zone !== "All") pool = pool.filter((u) => u.Zone === value.zone);
-    if (value.cluster !== "All") pool = pool.filter((u) => u.Cluster === value.cluster);
-    return pool;
-  }, [units, value.region, value.zone, value.cluster]);
-
   const set = (patch: Partial<FilterState>) => onChange({ ...value, ...patch });
 
   const cls =
@@ -53,7 +34,6 @@ export default function FilterBar({ options, value, onChange }: Props) {
     "text-slate-700 focus:border-sky-500 focus:outline-none";
 
   const isFiltered =
-    value.region !== "All" || value.zone !== "All" || value.cluster !== "All" ||
     value.unit !== "All" || value.department !== "All" ||
     value.stock_take_group !== "All";
 
@@ -64,29 +44,10 @@ export default function FilterBar({ options, value, onChange }: Props) {
           Scope
         </span>
 
-        <select className={cls} value={value.region}
-                onChange={(e) => set({ region: e.target.value, zone: "All",
-                                       cluster: "All", unit: "All" })}>
-          <option value="All">All Regions</option>
-          {options?.regions.map((r) => <option key={r} value={r}>{r}</option>)}
-        </select>
-
-        <select className={cls} value={value.zone}
-                onChange={(e) => set({ zone: e.target.value, cluster: "All", unit: "All" })}>
-          <option value="All">All Zones</option>
-          {zones.map((z) => <option key={z} value={z}>{z}</option>)}
-        </select>
-
-        <select className={cls} value={value.cluster}
-                onChange={(e) => set({ cluster: e.target.value, unit: "All" })}>
-          <option value="All">All Clusters</option>
-          {clusters.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
-
         <select className={cls} value={value.unit}
                 onChange={(e) => set({ unit: e.target.value })}>
           <option value="All">All Units</option>
-          {unitList.map((u) => (
+          {units.map((u) => (
             <option key={u.Unit_ID} value={u.Unit_ID}>
               {u.Unit_Name} ({u.Unit_ID})
             </option>
@@ -125,9 +86,8 @@ export default function FilterBar({ options, value, onChange }: Props) {
         {isFiltered && (
           <button className="text-xs text-sky-600 underline"
                   onClick={() => onChange({
-                    region: "All", zone: "All", cluster: "All", unit: "All",
-                    department: "All", stock_take_group: "All",
-                    preset: value.preset,
+                    ...value, unit: "All", department: "All",
+                    stock_take_group: "All",
                   })}>
             Clear all
           </button>

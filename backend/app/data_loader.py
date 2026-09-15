@@ -11,7 +11,7 @@ from functools import lru_cache
 
 import pandas as pd
 
-from app.config import FLAGS_PATH, PARQUET_DIR
+from app.config import ACTIVE_UNITS, FLAGS_PATH, PARQUET_DIR
 
 
 def _read(name: str) -> pd.DataFrame:
@@ -34,6 +34,9 @@ class DataStore:
         self.doctors = _read("Doctor_Master")
         self.vendors = _read("Vendor_Master")
         self.units = _read("Unit_Master")
+        self.units = self.units[
+            self.units["Unit_ID"].isin(ACTIVE_UNITS)
+        ].reset_index(drop=True)
 
         # --- Consumption ---
         c = _read("Consumption_Data")
@@ -46,6 +49,7 @@ class DataStore:
             self.doctors[["Doctor_ID", "Specialty"]], on="Doctor_ID", how="left",
         )
         c["Month_Start"] = c["Date"].values.astype("datetime64[M]")
+        c = c[c["Unit_ID"].isin(ACTIVE_UNITS)]
         self.consumption = c
 
         # --- Inventory ---
@@ -57,6 +61,7 @@ class DataStore:
             on="Item_ID", how="left",
         )
         i["Month_Start"] = i["Date"].values.astype("datetime64[M]")
+        i = i[i["Unit_ID"].isin(ACTIVE_UNITS)]
         self.inventory = i
 
         # --- Purchase ---
@@ -70,6 +75,7 @@ class DataStore:
         # Purchase has no Dept dimension. Explicit null column so the shared
         # department filter applies uniformly without special-casing.
         p["Dept_Name"] = None
+        p = p[p["Unit_ID"].isin(ACTIVE_UNITS)]
         self.purchase = p
 
         # --- Stock movement ---
@@ -77,12 +83,14 @@ class DataStore:
         m["Date"] = pd.to_datetime(m["Date"])
         m["Month_Start"] = m["Date"].values.astype("datetime64[M]")
         m["Dept_Name"] = None
+        m = m[m["Unit_ID"].isin(ACTIVE_UNITS)]
         self.movement = m
 
         # --- Budget (month x unit x dept) ---
         b = _read("Budget_Data")
         b["Date"] = pd.to_datetime(b["Date"])
         b["Month_Start"] = b["Date"].values.astype("datetime64[M]")
+        b = b[b["Unit_ID"].isin(ACTIVE_UNITS)]
         self.budget = b
 
         # --- SOB lookups --------------------------------------------------

@@ -63,3 +63,10 @@ ALLOWED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"]
 _deployed = os.environ.get("FRONTEND_ORIGIN")
 if _deployed:
     ALLOWED_ORIGINS += [o.strip() for o in _deployed.split(",")]
+
+
+# Active hospital units for this presentation. The synthetic network has 12
+# units so the Region/Zone/Cluster hierarchy can be demoed in full later -
+# this list just scopes what DataStore surfaces right now. Nothing else
+# changes: switch this back to all 12 to bring the rest of the network back.
+ACTIVE_UNITS = ["H010", "H011"]  # Pune, Goa
