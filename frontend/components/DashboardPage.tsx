@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import ChartPanel from "@/components/ChartPanel";
-import DataTable from "@/components/DataTable";
 import InsightCallout from "@/components/InsightCallout";
 import KpiCard from "@/components/KpiCard";
 import { fetchDashboard } from "@/lib/api";
@@ -74,8 +73,6 @@ export default function DashboardPage({ slug, title, subtitle }: Props) {
           <div className="grid gap-4 lg:grid-cols-2">
             {data.charts.map((c) => <ChartPanel key={c.id} spec={c} />)}
           </div>
-
-          <DataTable table={data.table} />
         </>
       )}
     </div>

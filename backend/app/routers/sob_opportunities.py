@@ -79,6 +79,7 @@ def sob_opportunities_dashboard(
             {"label": "Package", "value": float(pkg)},
             {"label": "Non-Package", "value": float(opp_value - pkg)},
         ])],
+        drilldown=metrics.items_by_package_split(opp),
     ))
 
     by_doc = metrics.breakdown(opp, "Doctor", top_n=10)
@@ -88,6 +89,7 @@ def sob_opportunities_dashboard(
         series=[ChartSeries(name="Opportunity", data=[
             {"label": r["Doctor"], "value": float(r["Value"])}
             for _, r in by_doc.iterrows()])],
+            drilldown=metrics.molecule_by_doctor(opp),
     ))
 
     by_mol = metrics.breakdown(opp, "Molecule", top_n=10)
@@ -97,6 +99,7 @@ def sob_opportunities_dashboard(
         series=[ChartSeries(name="Opportunity", data=[
             {"label": r["Molecule"], "value": float(r["Value"])}
             for _, r in by_mol.iterrows()])],
+            drilldown=metrics.doctor_brand_by_molecule(opp),
     ))
 
     by_item = metrics.breakdown(opp, "Item_Name", top_n=10)
@@ -106,6 +109,7 @@ def sob_opportunities_dashboard(
         series=[ChartSeries(name="Opportunity", data=[
             {"label": r["Item_Name"], "value": float(r["Value"])}
             for _, r in by_item.iterrows()])],
+            drilldown=metrics.doctors_by_brand(opp),
     ))
 
     # Item-level detail, naming the preferred brand that could replace each.

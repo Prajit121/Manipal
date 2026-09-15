@@ -5,7 +5,7 @@ export type Tone = "neutral" | "positive" | "risk";
 
 export type ChartType =
   | "line" | "bar" | "hbar" | "stacked_bar"
-  | "donut" | "area" | "grouped_bar";
+  | "donut" | "area" | "grouped_bar" | "combo";
 
 export interface Kpi {
   label: string;
@@ -29,6 +29,7 @@ export interface Chart {
   series: ChartSeries[];
   reference_line: number | null;
   value_format: "currency" | "percent" | "number";
+  drilldown?: Record<string, { Department: string; Value: number }[] | { name: string; value: number }[]> | null;
 }
 
 export interface TableColumn {

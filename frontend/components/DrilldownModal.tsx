@@ -1,0 +1,54 @@
+"use client";
+
+import { inrCompact } from "@/lib/format";
+
+interface Row {
+  Department: string;
+  Value: number;
+}
+
+export default function DrilldownModal({
+  title, rows, onClose,
+}: { title: string; rows: Row[]; onClose: () => void }) {
+  const total = rows.reduce((sum, r) => sum + r.Value, 0);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="w-full max-w-lg rounded-lg bg-white shadow-xl">
+        <div className="flex items-center justify-between bg-blue-700 px-5 py-3 rounded-t-lg">
+          <h3 className="text-sm font-semibold text-white">{title}</h3>
+          <button onClick={onClose} className="text-white/80 hover:text-white">✕</button>
+        </div>
+        <div className="max-h-96 overflow-y-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-blue-50 text-blue-700">
+                <th className="px-5 py-2 text-left font-medium">Department</th>
+                <th className="px-5 py-2 text-right font-medium">Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.Department} className="border-t border-slate-100">
+                  <td className="px-5 py-2 text-slate-900">{r.Department}</td>
+                  <td className="px-5 py-2 text-right font-medium text-blue-700">
+                    {inrCompact(r.Value)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3">
+          <span className="text-sm font-semibold text-blue-700">
+            Total: {inrCompact(total)}
+          </span>
+          <button onClick={onClose}
+                  className="rounded bg-blue-700 px-4 py-1.5 text-sm text-white hover:bg-blue-800">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

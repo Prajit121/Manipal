@@ -1,20 +1,26 @@
 "use client";
 
 import {
-  Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart,
-  ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,
+  Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Line, LineChart,
+  Pie, PieChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import { inrCompact } from "@/lib/format";
 import type { Chart as ChartSpec } from "@/lib/types";
+import { useState } from "react";
+import DrilldownModal from "./DrilldownModal";
+import DrilldownDonut from "./DrilldownDonut";
 
-// One accent ramp. Red is NOT in here - it is reserved for risk flags only.
-const COLORS = ["#0284c7", "#0d9488", "#7c3aed", "#c2410c", "#4f46e5",
-                "#0891b2", "#65a30d", "#9333ea", "#0369a1", "#15803d"];
+// High-contrast categorical palette. Blue and green are now genuinely
+// different hues (not two teals that read as the same color at a glance).
+// Red is deliberately excluded - reserved for risk flags on KPI cards only.
+const COLORS = ["#2563eb", "#ea580c", "#7c3aed", "#16a34a",
+                "#db2777", "#ca8a04", "#0891b2", "#4f46e5"];
 
 const MONTHS = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
                 "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-/** Merge multi-series data onto a shared x axis so Recharts can plot it. */
+const LEGEND_STYLE = { fontSize: 12, fontWeight: 400 };
+
 function mergeSeries(spec: ChartSpec) {
   const byX = new Map<string, Record<string, string | number>>();
   spec.series.forEach((s) => {
@@ -30,13 +36,6 @@ function mergeSeries(spec: ChartSpec) {
   return Array.from(byX.values());
 }
 
-/**
- * A chart's Y axis is currency, a percentage, or a plain count (days,
- * items) - never assume currency. The backend tags every chart with
- * value_format; this just renders whatever it says. Getting this wrong is
- * how a day-count chart ends up with a Rs sign on axis it (see
- * inventory_days_trend / expiry_risk - both fixed by this).
- */
 function makeFormatter(format: ChartSpec["value_format"]) {
   return (v: number) => {
     if (format === "percent") return `${v.toFixed(1)}%`;
@@ -50,18 +49,44 @@ export default function ChartPanel({ spec }: { spec: ChartSpec }) {
   const data = mergeSeries(spec);
   const horizontal = spec.type === "hbar";
   const fmt = makeFormatter(spec.value_format);
+  const [drillMonth, setDrillMonth] = useState<string | null>(null);
 
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-4">
-      <h3 className="mb-4 text-sm font-semibold text-slate-700">{spec.title}</h3>
+      {/* Heading matches the legend below: same size, same weight, non-bold. */}
+      <h3 className="mb-4 text-xs font-normal text-slate-700">{spec.title}</h3>
       <ResponsiveContainer width="100%" height={horizontal ? 360 : 280}>
-        {spec.type === "line" ? (
-          <LineChart data={data}>
+        {spec.type === "combo" ? (
+          // First series renders as bars, the rest as lines - one convention,
+          // used consistently (BUD as bars, Actual/Inventory Days as line).
+          <ComposedChart data={data}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
             <XAxis dataKey="x" tick={{ fontSize: 11 }} />
             <YAxis tickFormatter={fmt} tick={{ fontSize: 11 }} width={80} />
-            <Tooltip formatter={(v) => fmt(Number(v))} />
-            <Legend />
+            <Tooltip formatter={(v) => fmt(Number(v))} 
+              contentStyle={{ color: "#0f172a" }}
+              labelStyle={{ color: "#0f172a" }}/>
+            <Legend wrapperStyle={LEGEND_STYLE} />
+            <Bar dataKey={names[0]} fill={COLORS[0]} radius={[4, 4, 0, 0]}
+     cursor={spec.drilldown ? "pointer" : undefined}
+     onClick={(d) => spec.drilldown && setDrillMonth(String(d.payload.x))} />
+            {names.slice(1).map((n, i) => (
+              <Line key={n} type="monotone" dataKey={n}
+                    stroke={COLORS[(i + 1) % COLORS.length]}
+                    strokeWidth={2} dot={false} />
+            ))}
+          </ComposedChart>
+        ) : spec.type === "line" ? (
+          <LineChart data={data}
+                      onClick={(e) => spec.drilldown && e?.activeLabel && setDrillMonth(String(e.activeLabel))}
+                      style={{ cursor: spec.drilldown ? "pointer" : undefined }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <XAxis dataKey="x" tick={{ fontSize: 11 }} />
+            <YAxis tickFormatter={fmt} tick={{ fontSize: 11 }} width={80} />
+            <Tooltip formatter={(v) => fmt(Number(v))}
+                     contentStyle={{ color: "#0f172a" }}
+                     labelStyle={{ color: "#0f172a" }} />
+            <Legend wrapperStyle={LEGEND_STYLE} />
             {spec.reference_line !== null && (
               <ReferenceLine y={spec.reference_line} stroke="#dc2626"
                              strokeDasharray="4 4" />
@@ -71,19 +96,25 @@ export default function ChartPanel({ spec }: { spec: ChartSpec }) {
                     stroke={COLORS[i % COLORS.length]} strokeWidth={2} dot={false} />
             ))}
           </LineChart>
-        ) : spec.type === "donut" ? (
+                ) : spec.type === "donut" ? (
           <PieChart>
-            <Tooltip formatter={(v) => fmt(Number(v))} />
-            <Legend />
+            <Tooltip formatter={(v) => fmt(Number(v))}
+                     contentStyle={{ color: "#0f172a" }}
+                     labelStyle={{ color: "#0f172a" }} />
+            <Legend wrapperStyle={LEGEND_STYLE} />
             <Pie data={data} dataKey={names[0]} nameKey="x"
-                 innerRadius={60} outerRadius={100}>
+                 innerRadius={60} outerRadius={100}
+                 cursor={spec.drilldown ? "pointer" : undefined}
+                 onClick={(d) => spec.drilldown && setDrillMonth(String(d.payload?.x ?? d.name))}>
               {data.map((_, i) => (
                 <Cell key={i} fill={COLORS[i % COLORS.length]} />
               ))}
             </Pie>
           </PieChart>
         ) : (
-          <BarChart data={data} layout={horizontal ? "vertical" : "horizontal"}>
+          <BarChart data={data} layout={horizontal ? "vertical" : "horizontal"}
+                    onClick={(e) => spec.drilldown && e?.activeLabel && setDrillMonth(String(e.activeLabel))}
+                    style={{ cursor: spec.drilldown ? "pointer" : undefined }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
             {horizontal ? (
               <>
@@ -97,15 +128,55 @@ export default function ChartPanel({ spec }: { spec: ChartSpec }) {
                 <YAxis tickFormatter={fmt} tick={{ fontSize: 11 }} width={80} />
               </>
             )}
-            <Tooltip formatter={(v) => fmt(Number(v))} />
-            {names.length > 1 && <Legend />}
+            <Tooltip formatter={(v) => fmt(Number(v))}
+                     contentStyle={{ color: "#0f172a" }}
+                     labelStyle={{ color: "#0f172a" }} />
+            {names.length > 1 && <Legend wrapperStyle={LEGEND_STYLE} />}
             {names.map((n, i) => (
               <Bar key={n} dataKey={n} fill={COLORS[i % COLORS.length]}
                    stackId={spec.type === "stacked_bar" ? "a" : undefined} />
             ))}
           </BarChart>
         )}
-      </ResponsiveContainer>
+            </ResponsiveContainer>
+      {spec.drilldown && drillMonth && (
+        spec.id === "non_moving_trend" || spec.id === "expiry_risk" || spec.id === "formulary_by_package" ? (
+          <DrilldownDonut
+            title={
+              spec.id === "expiry_risk" ? `Expiry Risk by Department — ${drillMonth}`
+              : spec.id === "non_moving_trend" ? `Non Moving Stock by Department — ${drillMonth}`
+              : `Package/Formulary Mix — ${drillMonth}`
+            }
+            data={(spec.drilldown[drillMonth] ?? []) as { name: string; value: number }[]}
+            onClose={() => setDrillMonth(null)}
+          />
+        ) : (
+          <DrilldownModal
+            title={(() => {
+              const labels: Record<string, string> = {
+                inventory_days_trend: "Department-wise Stock Value",
+                value_vs_consumption: "Department-wise Consumption",
+                consumption_trend: "Department-wise Consumption",
+                closing_stock_ageing: "Department-wise Closing Stock Value",
+                top_locations_consumption: "Top Items (Consumption)",
+                top_locations_inventory: "Top Items (Stock Value)",
+                compliance_trend: "Off-Formulary Items",
+                ip_op_compliance: "Department-wise Compliance Value",
+                mix_scheme: "Molecule/Brand Breakdown",
+                mix_cash_tpa: "Molecule/Brand Breakdown",
+                by_doctor: "Molecule Breakdown",
+                by_molecule: "Doctor/Brand Breakdown",
+                by_item: "Doctor Breakdown",
+                tier_mix: "Top Molecule/Brand",
+                package_split: "Top Items",
+              };
+              return `${labels[spec.id] ?? "Department-wise Value"} — ${drillMonth}`;
+            })()}
+            rows={(spec.drilldown[drillMonth] ?? []) as { Department: string; Value: number }[]}
+            onClose={() => setDrillMonth(null)}
+          />
+        )
+      )}
     </div>
   );
 }

@@ -1,16 +1,14 @@
-"""Inventory Analysis dashboard. Same template shape as consumption.py."""
+"""Inventory Analysis dashboard. Matches PRAVAH's page structure."""
 
 from fastapi import APIRouter, Depends
 
 from app import metrics
 from app.data_loader import DataStore, get_store
 from app.filters import Filters, apply, get_filters
-from app.formatting import inr_compact, pct, qty_compact
+from app.formatting import inr_compact
 from app.schemas import Chart, ChartSeries, DashboardResponse, Kpi, Table
 
 router = APIRouter(prefix="/api", tags=["inventory"])
-
-AGE_ORDER = ["Below 30", "30 - 60", "60 - 90", "Above 90"]
 
 
 @router.get("/inventory-analysis", response_model=DashboardResponse)
@@ -20,38 +18,31 @@ def inventory_dashboard(
 ) -> DashboardResponse:
     df = apply(store.inventory, f, date_col="Date")
     cons = apply(store.consumption, f, date_col="Date")
+    bud = apply(store.budget, f, date_col="Date")
 
     if not len(df):
         return DashboardResponse(
             filters=f.as_dict(), kpis=[], charts=[],
             table=Table(columns=[], rows=[]),
-            insights=["No stock recorded for the selected filters."],
-            row_count=0,
+            insights=[], row_count=0,
         )
 
-    # STOCK IS A POINT-IN-TIME MEASURE. Summing month-end snapshots across a
-    # date range double-counts the same physical stock once per month - the
-    # figure it produces is meaningless. Every stock KPI and every stock
-    # composition figure is computed "as on" the latest snapshot in range,
-    # which is how the client's own report labels it: "Inventory Value (As on)".
-    # Only the trend charts look across months.
+    # Stock is a point-in-time measure - summing month-end snapshots across a
+    # range double-counts the same physical stock. Every stock KPI reads from
+    # the latest snapshot ("as on"), matching the client's own "(As on)" label.
     as_on = df["Date"].max()
     snap = df[df["Date"] == as_on]
 
     k = metrics.inventory_kpis(snap)
     h = metrics.his_consumption(cons)
 
-    # --- Inventory Days ----------------------------------------------------
-    # Client definition: stock value x days elapsed in month / consumption
-    # month-to-date.
     days_series = metrics.inventory_days_series(df, cons)
+    budget_days_series = metrics.budget_inventory_days_series(df, bud)
     latest_days = float(days_series["inventory_days"].iloc[-1]) if len(days_series) else 0.0
-    avg_days = float(days_series["inventory_days"].mean()) if len(days_series) else 0.0
 
     in_transit = float(snap["In_Transit_Value"].sum())
-    essential_value = metrics.total_value(
-        snap[snap["Is_Essential"] == True], "Stock_Value")  # noqa: E712
 
+    # Only the client's own 5-KPI row - no second row.
     kpis = [
         Kpi(label="Inventory Days", value=latest_days,
             display=f"{latest_days:.0f}",
@@ -67,36 +58,31 @@ def inventory_dashboard(
         Kpi(label="HIS Non-Implant Cons", value=h["non_implant_cons"],
             display=inr_compact(h["non_implant_cons"]),
             note=f"Excludes {inr_compact(h['implant_cons'])} of implants"),
-        Kpi(label="% Non-Moving", value=k["non_moving_pct"],
-            display=pct(k["non_moving_pct"]),
-            tone="risk" if k["non_moving_pct"] > 15 else "neutral",
-            note="No issue movement in 90 days"),
-        Kpi(label="Essential Stock Value", value=essential_value,
-            display=inr_compact(essential_value),
-            note="Items flagged must-not-stock-out"),
-        Kpi(label="Items Near Expiry", value=k["near_expiry_items"],
-            display=qty_compact(k["near_expiry_items"]), tone="risk",
-            note="Expiring within 90 days"),
-        Kpi(label="Items Expired", value=k["expired_items"],
-            display=qty_compact(k["expired_items"]), tone="risk"),
-        Kpi(label="Expired Value", value=k["expired_value"],
-            display=inr_compact(k["expired_value"]), tone="risk"),
     ]
 
     charts = []
 
-    # 1. Inventory Days trend - one point per stock snapshot.
+    # 1. Inventory Days Trend - BUD (bar) + Actual (line).
     if len(days_series):
+        act_map = dict(zip(days_series["Date"], days_series["inventory_days"]))
+        bud_map = dict(zip(budget_days_series["Date"], budget_days_series["budget_inventory_days"])) \
+            if len(budget_days_series) else {}
+        months = sorted(act_map)
         charts.append(Chart(
-            id="inventory_days_trend", title="Inventory Days Trend", type="line",
-            x_key="month", value_format="number",
-            series=[ChartSeries(name="Inventory Days", data=[
-                {"month": r["Date"].strftime("%b %y"),
-                 "value": float(r["inventory_days"])}
-                for _, r in days_series.iterrows()])],
+            id="inventory_days_trend", title="Inventory Days Trend",
+            type="combo", x_key="month", value_format="number",
+            series=[
+                ChartSeries(name="BUD", data=[
+                    {"month": m.strftime("%b %y"), "value": float(bud_map.get(m, 0))}
+                    for m in months]),
+                ChartSeries(name="Inventory Days", data=[
+                    {"month": m.strftime("%b %y"), "value": float(act_map[m])}
+                    for m in months]),
+            ],
+            drilldown=metrics.inventory_days_by_dept(df, cons),
         ))
 
-    # 2. Inventory value against consumption.
+    # 2. Inventory Value & HIS Consumption Trend - Value (bar) + Cons (line).
     stock_m = df.groupby("Month_Start", as_index=False)["Stock_Value"].sum()
     cons_m = metrics.monthly_trend(cons)
     if len(stock_m) and len(cons_m):
@@ -105,8 +91,8 @@ def inventory_dashboard(
         months = sorted(set(s_map) | set(c_map))
         charts.append(Chart(
             id="value_vs_consumption",
-            title="Inventory Value & HIS Consumption Trend", type="line",
-            x_key="month",
+            title="Inventory Value & HIS Consumption Trend",
+            type="combo", x_key="month",
             series=[
                 ChartSeries(name="Inventory Value", data=[
                     {"month": m.strftime("%b %y"), "value": float(s_map.get(m, 0))}
@@ -115,13 +101,10 @@ def inventory_dashboard(
                     {"month": m.strftime("%b %y"), "value": float(c_map.get(m, 0))}
                     for m in months]),
             ],
+            drilldown=metrics.his_consumption_by_dept(cons),
         ))
 
-    # 3. Non-moving trend, split by moving / recently-purchased-but-already-
-    # non-moving / essential-stock share.
-    # "Recent Purchase" is a DEMO HEURISTIC: non-moving stock aged under 30
-    # days - flags freshly bought items that never got used. Confirm the
-    # real definition with the client; this is one line to change once known.
+    # 3. Non Moving Inventory Trend (%).
     nm_rows = []
     for month, grp in df.groupby("Month_Start"):
         tot = grp["Stock_Value"].sum()
@@ -145,13 +128,10 @@ def inventory_dashboard(
             ChartSeries(name="Essential Stock %", data=[
                 {"month": r["month"], "value": r["essential"]} for r in nm_rows]),
         ],
+        drilldown=metrics.non_moving_by_dept(df),
     ))
 
-    # 4. Expiry risk as a percentage of stock value over time.
-    age = snap.groupby("Ageing", as_index=False)["Stock_Value"].sum()
-    age["_o"] = age["Ageing"].map({a: i for i, a in enumerate(AGE_ORDER)})
-    age = age.sort_values("_o")
-
+    # 4. Expiry Risk Trend (%).
     exp_rows = []
     for month, grp in df.groupby("Month_Start"):
         tot = grp["Stock_Value"].sum()
@@ -171,6 +151,7 @@ def inventory_dashboard(
             ChartSeries(name="Expired %", data=[
                 {"month": r["month"], "value": r["expired"]} for r in exp_rows]),
         ],
+        drilldown=metrics.expiry_risk_by_dept(df),
     ))
 
     detail = snap[["Item_Name", "Batch_No", "Expiry_Date", "Stock_Qty",
@@ -199,27 +180,8 @@ def inventory_dashboard(
         } for _, r in detail.iterrows()],
     )
 
-    total = k["total_stock_value"]
-    insights = [
-        f"As on {as_on.strftime('%d %b %Y')}, stock covers {latest_days:.0f} "
-        f"days of consumption (average {avg_days:.0f} days over the period).",
-    ]
-    if len(age):
-        old = age.loc[age["Ageing"] == "Above 90", "Stock_Value"].sum()
-        insights.append(
-            f"{metrics.safe_pct(old, total)}% of stock value has been held "
-            f"over 90 days.")
-    insights.append(
-        f"Non-moving stock accounts for {k['non_moving_pct']}% of total value.")
-    if k["expired_value"]:
-        insights.append(
-            f"{k['expired_items']} batches have expired, carrying "
-            f"{inr_compact(k['expired_value'])} in stock value.")
-    insights.append(
-        "\u201cNon Moving Recent Purchase %\u201d is a demo heuristic - non-moving "
-        "stock aged under 30 days. Confirm the real definition with the client.")
-
+    # Key Observations removed for this page per request.
     return DashboardResponse(
         filters=f.as_dict(), kpis=kpis, charts=charts, table=table,
-        insights=insights, row_count=len(df),
+        insights=[], row_count=len(df),
     )

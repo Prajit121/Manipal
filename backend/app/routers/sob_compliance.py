@@ -33,6 +33,7 @@ def _stacked(df, payers, chart_id, title):
                 {"month": r["month"], "value": r[t]} for r in rows])
             for t in FORMULARY_TIERS
         ],
+        drilldown=metrics.molecule_brand_by_month(subset),
     )
 
 
@@ -88,6 +89,7 @@ def sob_compliance_dashboard(
             {"label": f"{r['Formulary_Tier']} - {TIER_LABELS.get(r['Formulary_Tier'], '')}",
              "value": float(r["Value"])}
             for _, r in tier_total.iterrows()])],
+        drilldown=metrics.molecule_brand_by_tier(df, TIER_LABELS),
     ))
 
     trend = []
@@ -102,6 +104,7 @@ def sob_compliance_dashboard(
         id="compliance_trend", title="SOB Compliance % by Month", type="line",
         x_key="month", value_format="percent",
         series=[ChartSeries(name="Compliance %", data=trend)],
+        drilldown=metrics.molecule_brand_by_month(df),
     ))
 
     agg = (df.groupby(["Molecule", "Item_Name", "Formulary_Tier"], as_index=False)

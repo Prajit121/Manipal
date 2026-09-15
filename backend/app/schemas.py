@@ -30,14 +30,16 @@ class ChartSeries(BaseModel):
     data: list[dict[str, Any]]
 
 
+
 class Chart(BaseModel):
-    id: str                          # stable key the frontend maps on
+    id: str
     title: str
-    type: Literal["line", "bar", "hbar", "stacked_bar", "donut", "area", "grouped_bar"]
-    x_key: str                       # which dict key is the category axis
+    type: Literal["line", "bar", "hbar", "stacked_bar", "donut", "area", "grouped_bar", "combo"]
+    x_key: str
     series: list[ChartSeries]
     reference_line: float | None = None
     value_format: Literal["currency", "percent", "number"] = "currency"
+    drilldown: dict[str, list[dict[str, Any]]] | None = None
 
 
 class Table(BaseModel):
@@ -53,3 +55,5 @@ class DashboardResponse(BaseModel):
     table: Table
     insights: list[str]
     row_count: int                   # 0 => frontend shows the empty state
+
+

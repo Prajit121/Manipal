@@ -73,6 +73,7 @@ def formulary_dashboard(
         type="line", x_key="month", value_format="percent",
         reference_line=FORMULARY_TARGET_PCT,
         series=[ChartSeries(name="Compliance %", data=trend)],
+        drilldown=metrics.off_formulary_items_by_month(df),
     ))
 
     # 2. Pharmacy Compliance - IP vs OP.
@@ -94,6 +95,7 @@ def formulary_dashboard(
             ChartSeries(name="OP Compliance", data=[
                 {"month": r["month"], "value": r["OP"]} for r in ip_op]),
         ],
+        drilldown=metrics.ip_op_compliance_by_dept(df),
     ))
 
     # 3. Formulary status x Package status - % of monthly value.
@@ -117,6 +119,7 @@ def formulary_dashboard(
                 for r in pkg_rows])
             for status, pkg in SEGMENTS
         ],
+        drilldown=metrics.formulary_package_mix_by_month(df, SEGMENTS),
     ))
 
     agg = (df.groupby(["Item_ID", "Item_Name", "Category", "Molecule",

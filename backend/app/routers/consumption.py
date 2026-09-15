@@ -82,6 +82,7 @@ def consumption_dashboard(
                     {"month": m.strftime("%b %y"), "value": float(act_map.get(m, 0))}
                     for m in months]),
             ],
+            drilldown=metrics.his_consumption_by_dept(df),
         ))
 
     # 2. Closing Stock Ageing (Cr) - monthly stacked bar, from inventory.
@@ -99,6 +100,7 @@ def consumption_dashboard(
             series=[ChartSeries(name=b, data=[
                 {"month": r["month"], "value": r[b]} for r in rows])
                 for b in AGE_ORDER],
+            drilldown=metrics.closing_stock_by_dept(inv),
         ))
 
     # 3. Top 10 by store location - consumption.
@@ -112,6 +114,7 @@ def consumption_dashboard(
         series=[ChartSeries(name="Value", data=[
             {"label": r["Store_Location"], "value": float(r["Value"])}
             for _, r in loc.iterrows()])],
+            drilldown=metrics.consumption_by_item_for_location(df),
     ))
 
     # 4. Top 10 by store location - inventory value (latest snapshot).
@@ -125,6 +128,7 @@ def consumption_dashboard(
             series=[ChartSeries(name="Stock Value", data=[
                 {"label": r["Store_Location"], "value": float(r["Stock_Value"])}
                 for _, r in loc_inv.iterrows()])],
+                drilldown=metrics.inventory_by_item_for_location(snap),
         ))
 
     agg = (df.groupby(["Item_ID", "Item_Name", "Category"], as_index=False)

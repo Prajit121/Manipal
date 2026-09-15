@@ -28,9 +28,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        <div className="flex min-h-screen bg-slate-50">
+        <div className="flex h-screen overflow-hidden bg-slate-50">
           <Sidebar options={options} filters={filters} onFiltersChange={setFilters} />
-          <main className="flex-1 overflow-x-hidden p-6">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden p-6">
             {/* Pages read filters via a tiny context rather than fetching
                 their own - see lib/filter-context.tsx. */}
             <FilterProvider value={{ filters, options }}>
