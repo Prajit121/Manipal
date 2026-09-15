@@ -16,12 +16,12 @@ export default function Sidebar({ options, filters, onFiltersChange }: Props) {
   const path = usePathname();
 
   return (
-    <aside className="flex w-72 shrink-0 flex-col border-r border-slate-200 bg-white">
-      <div className="border-b border-slate-200 px-5 py-4">
-        <p className="text-lg font-semibold tracking-tight text-slate-900">
+    <aside className="flex w-72 shrink-0 flex-col border-r border-slate-200 bg-slate-100">
+      <div className="border-b border-slate-200 bg-red-700 px-5 py-4">
+        <p className="text-lg font-semibold tracking-tight text-white">
           Manipal
         </p>
-        <p className="text-xs text-slate-500">Pharmacy &amp; Inventory Analytics</p>
+        <p className="text-xs text-red-100">Pharmacy &amp; Inventory Analytics</p>
       </div>
 
       <nav className="space-y-0.5 p-3">
